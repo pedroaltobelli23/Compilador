@@ -71,14 +71,12 @@ class Parser:
 
     def parseExpression(self):
         self.tokens.selectNext()  # get first token
-        # print(self.tokens.next.value)
         first_token = self.tokens.next
         total = 0
         # checking if first token is INT
         if first_token.type == INT:
             total = int(first_token.value)
             self.tokens.selectNext()
-            print(self.tokens.next.value)
             while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
                 if self.tokens.next.type == PLUS:
                     self.tokens.selectNext()
@@ -132,17 +130,3 @@ if __name__ == "__main__":
 
     final = parser.run(chain)
     print(final)
-    
-    # a = Tokenizer(chain)
-    # a.selectNext()
-    # print(a.next.value)
-    # a.selectNext()
-    # print(a.next.value)
-    # a.selectNext()
-    # print(a.next.value)
-    # a.selectNext()
-    # print(a.next.value)
-    # a.selectNext()
-    # print(a.next.value)
-    # a.selectNext()
-    # print(a.next.value)
