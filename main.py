@@ -1,50 +1,125 @@
 import sys
-import math
+import re
 
-n = len(sys.argv)
-raw_chain = sys.argv[1]
-# raw_chain = "1+1"
-is_number = True
-chain = "" 
 
-#cleaning string
-for char in raw_chain:
-    if char != ' ':
-        chain += char
+PLUS = "+"
+MINUS = "-"
+INT = "INTEGER"
+EOF = "End of File"
 
-number_initial = 0
-number_final = 0
-i=0
-numbers = []
-operations = []
-#putting numbers in string
-while i < len(chain):
-    val = chain[i]
-    if val == "+" or val=="-" or val=="*" or val=="/":
-        number_final = i
-        numbers.append(chain[number_initial:number_final])
-        number_initial = i+1
-        operations.append(val)
-    i+=1
-if number_initial!=number_final:
-    numbers.append(chain[number_initial:])
-    
-total = int(numbers[0])
 
-for i in range(len(operations)):
-    operation = operations[i]
-    next_number = int(numbers[i + 1])
+class Token:
+    def __init__(self, type, value):
+        self.type = type
+        self.value = value
 
-    if operation == "+":
-        total += next_number
-    elif operation == "-":
-        total -= next_number
-    elif operation == "*":
-        total *= next_number
-    elif operation == "/":
-        total /= next_number
-    else:
-        print("This operation don't exist")
-        break
-    
-print(total)
+
+class Tokenizer:
+    def __init__(self, source, next=None, position=0):
+        self.source = source
+        self.next = next
+        self.position = position
+
+    def selectNext(self):
+        value = ""
+        type = None
+
+        if self.position >= len(self.source):
+            value = "EOF"
+            type = EOF
+            self.next = Token(type=type, value=value)
+
+        while self.position < len(self.source):
+            if re.match("[0-9]", self.source[self.position]):  # Checking if is number
+                while self.position < len(self.source):
+                    if re.match(r"[0-9]", self.source[self.position]):
+                        value += self.source[self.position]
+                        self.position += 1
+                    else:
+                        break
+                type = INT
+                self.next = Token(type=type, value=value)
+                break
+            if self.source[self.position] == "+":  # Checking if is plus
+                value = self.source[self.position]
+                type = PLUS
+                self.next = Token(type=type, value=value)
+                self.position += 1
+                break
+            if self.source[self.position] == "-":  # Checking if is minus
+                value = self.source[self.position]
+                type = MINUS
+                self.next = Token(type=type, value=value)
+                self.position += 1
+                break
+            break
+
+        return None
+
+
+class ParserError(Exception):
+    pass
+
+
+class Parser:
+    tokens = None
+
+    def parseExpression(self):
+        self.tokens.selectNext()  # get first token
+        now_token = self.tokens.next
+        total = 0
+        # checking if first token is INT
+        if now_token.type == INT:
+            total += int(now_token.value)
+            # Starting loop
+            while True:
+                self.tokens.selectNext()
+                if self.tokens.next.type == PLUS:
+                    self.tokens.selectNext()
+                    if self.tokens.next.type == INT:
+                        total += int(self.tokens.next.value)
+                    else:
+                        raise Exception("Code don't make sense")
+                if self.tokens.next.type == MINUS:
+                    self.tokens.selectNext()
+                    if self.tokens.next.type == INT:
+                        total -= int(self.tokens.next.value)
+                    else:
+                        raise Exception("Code don't make sense")
+                if self.tokens.next.type == EOF:
+                    return total
+        else:
+            raise Exception("Code don't make sense")
+
+    def run(self, code):
+        self.tokens = Tokenizer(code)
+        return self.parseExpression()
+
+
+if __name__ == "__main__":
+    # source = "input.txt"
+
+    # raw_chain = ""
+    # with open(source,"r") as f:
+    #     raw_chain = f.read()
+
+    # chain = ""
+    # for char in raw_chain:
+    #     if char != ' ':
+    #         chain += char
+
+    # with open(source,'w') as f:
+    #     f.write(chain)
+
+    raw_chain = sys.argv[1]
+    chain = ""
+
+    # cleaning string
+    for char in raw_chain:
+        if char != " ":
+            chain += char
+
+    parser = Parser()
+
+    final = parser.run(chain)
+    print(final)
