@@ -4,6 +4,8 @@ import re
 
 PLUS = "+"
 MINUS = "-"
+TIMES = "*"
+DIV = "/"
 INT = "INTEGER"
 EOF = "End of File"
 
@@ -55,6 +57,18 @@ class Tokenizer:
                 self.next = Token(type=type, value=value)
                 self.position += 1
                 return
+            elif self.source[self.position] == "*":  # Checking if is times
+                value = self.source[self.position]
+                type = TIMES
+                self.next = Token(type=type, value=value)
+                self.position += 1
+                return
+            elif self.source[self.position] == "/":  # Checking if is division
+                value = self.source[self.position]
+                type = DIV
+                self.next = Token(type=type, value=value)
+                self.position += 1
+                return
             elif self.source[self.position] == " ":
                 self.position += 1
                 continue
@@ -68,32 +82,54 @@ class ParserError(Exception):
 
 class Parser:
     tokens = None
+    total = 0
 
     def parseExpression(self):
-        self.tokens.selectNext()  # get first token
+        # start at the parseTerm function
+        self.total += self.parseTerm()
+        while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
+            if self.tokens.next.type == PLUS:
+                left = self.parseTerm()
+                self.total += left
+
+            if self.tokens.next.type == MINUS:
+                left = self.parseTerm()
+                self.total -= left
+
+        if self.tokens.next.type == EOF:
+            return self.total
+        else:
+            print(self.tokens.next.type)
+            raise Exception("Code don't make sense")
+
+    def parseTerm(self):
+        self.tokens.selectNext()
         first_token = self.tokens.next
-        total = 0
         # checking if first token is INT
         if first_token.type == INT:
-            total = int(first_token.value)
+            totalTerm = int(first_token.value)
             self.tokens.selectNext()
-            while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
-                if self.tokens.next.type == PLUS:
+            while self.tokens.next.type == TIMES or self.tokens.next.type == DIV:
+                if self.tokens.next.type == TIMES:
                     self.tokens.selectNext()
                     if self.tokens.next.type == INT:
-                        total += int(self.tokens.next.value)
+                        totalTerm *= int(self.tokens.next.value)
                         self.tokens.selectNext()
                     else:
                         raise Exception("Code don't make sense")
-                if self.tokens.next.type == MINUS:
+                if self.tokens.next.type == DIV:
                     self.tokens.selectNext()
                     if self.tokens.next.type == INT:
-                        total -= int(self.tokens.next.value)
+                        totalTerm //= int(self.tokens.next.value)
                         self.tokens.selectNext()
                     else:
                         raise Exception("Code don't make sense")
-            if self.tokens.next.type == EOF:
-                return total
+            if (
+                self.tokens.next.type == PLUS
+                or self.tokens.next.type == MINUS
+                or self.tokens.next.type == EOF
+            ):
+                return totalTerm
             else:
                 raise Exception("Code donn't make sense")
         else:
@@ -105,20 +141,6 @@ class Parser:
 
 
 if __name__ == "__main__":
-    # source = "input.txt"
-
-    # raw_chain = ""
-    # with open(source,"r") as f:
-    #     raw_chain = f.read()
-
-    # chain = ""
-    # for char in raw_chain:
-    #     if char != ' ':
-    #         chain += char
-
-    # with open(source,'w') as f:
-    #     f.write(chain)
-
     chain = sys.argv[1]
 
     # # cleaning string
