@@ -15,14 +15,15 @@ class Token:
 
 
 class Tokenizer:
-    def __init__(self, source, next=None, position=0):
-        self.source = source
+    def __init__(self, source : str, next=None, position=0):
+        self.source = source.strip()
         self.next = next
         self.position = position
 
     def selectNext(self):
         value = ""
         type = None
+        
 
         if self.position >= len(self.source):
             value = "EOF"
@@ -52,7 +53,8 @@ class Tokenizer:
                 self.next = Token(type=type, value=value)
                 self.position += 1
                 break
-            break
+            if self.source[self.position] == " ":
+                self.position += 1
 
         return None
 
@@ -72,21 +74,27 @@ class Parser:
         if first_token.type == INT:
             total = int(first_token.value)
             self.tokens.selectNext()
-            while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
-                if self.tokens.next.type == PLUS:
+            if self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
+                while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
+                    if self.tokens.next.type == PLUS:
+                        self.tokens.selectNext()
+                        if self.tokens.next.type == INT:
+                            total+= self.tokens.next.type
+                        else:
+                            raise Exception("Code don't make sense")
+                    if self.tokens.next.type == PLUS:
+                        self.tokens.selectNext()
+                        if self.tokens.next.type == INT:
+                            total+= self.tokens.next.type
+                        else:
+                            raise Exception("Code don't make sense")
                     self.tokens.selectNext()
-                    if self.tokens.next.type == INT:
-                        total+= self.tokens.next.type
-                    else:
-                        raise Exception("Code don't make sense")
-                if self.tokens.next.type == PLUS:
-                    self.tokens.selectNext()
-                    if self.tokens.next.type == INT:
-                        total+= self.tokens.next.type
-                    else:
-                        raise Exception("Code don't make sense")
-                self.tokens.selectNext()
-            return total
+                    return total
+            else:
+                if self.tokens.next.type == EOF:
+                    return total
+                else:
+                    raise Exception("Code don't make sense")
         else:
             raise Exception("Code don't make sense")
 
