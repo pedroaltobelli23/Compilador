@@ -78,6 +78,7 @@ class Parser:
         if first_token.type == INT:
             total = int(first_token.value)
             self.tokens.selectNext()
+            print(self.tokens.next.value)
             while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
                 if self.tokens.next.type == PLUS:
                     self.tokens.selectNext()
@@ -93,7 +94,10 @@ class Parser:
                         self.tokens.selectNext()
                     else:
                         raise Exception("Code don't make sense")
-            return total
+            if self.tokens.next.type == EOF:
+                return total
+            else:
+                raise Exception("Code donn't make sense")
         else:
             raise Exception("Code don't make sense")
 
