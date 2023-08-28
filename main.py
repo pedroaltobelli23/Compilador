@@ -66,28 +66,27 @@ class Parser:
 
     def parseExpression(self):
         self.tokens.selectNext()  # get first token
-        now_token = self.tokens.next
+        first_token = self.tokens.next
         total = 0
         # checking if first token is INT
-        if now_token.type == INT:
-            total += int(now_token.value)
-            # Starting loop
-            while True:
-                self.tokens.selectNext()
+        if first_token.type == INT:
+            total = int(first_token.value)
+            self.tokens.selectNext()
+            while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
                 if self.tokens.next.type == PLUS:
                     self.tokens.selectNext()
                     if self.tokens.next.type == INT:
-                        total += int(self.tokens.next.value)
+                        total+= self.tokens.next.type
                     else:
                         raise Exception("Code don't make sense")
-                if self.tokens.next.type == MINUS:
+                if self.tokens.next.type == PLUS:
                     self.tokens.selectNext()
                     if self.tokens.next.type == INT:
-                        total -= int(self.tokens.next.value)
+                        total+= self.tokens.next.type
                     else:
                         raise Exception("Code don't make sense")
-                if self.tokens.next.type == EOF:
-                    return total
+                self.tokens.selectNext()
+            return total
         else:
             raise Exception("Code don't make sense")
 
@@ -111,13 +110,12 @@ if __name__ == "__main__":
     # with open(source,'w') as f:
     #     f.write(chain)
 
-    raw_chain = sys.argv[1]
-    chain = ""
-
-    # cleaning string
-    for char in raw_chain:
-        if char != " ":
-            chain += char
+    chain = sys.argv[1]
+    
+    # # cleaning string
+    # for char in raw_chain:
+    #     if char != " ":
+    #         chain += char
 
     parser = Parser()
 
