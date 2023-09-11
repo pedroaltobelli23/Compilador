@@ -8,6 +8,8 @@ TIMES = "*"
 DIV = "/"
 INT = "INTEGER"
 EOF = "End of File"
+PAR_IN = "("
+PAR_OUT = ")"
 
 
 class Token:
@@ -40,10 +42,10 @@ class Tokenizer:
                         self.position += 1
                     else:
                         type = INT
-                        self.next = Token(type=type, value=value)
+                        self.next = Token(type=type, value=int(value))
                         return
                 type = INT
-                self.next = Token(type=type, value=value)
+                self.next = Token(type=type, value=int(value))
                 return
             elif self.source[self.position] == "+":  # Checking if is plus
                 value = self.source[self.position]
@@ -69,6 +71,18 @@ class Tokenizer:
                 self.next = Token(type=type, value=value)
                 self.position += 1
                 return
+            elif self.source[self.position] == "(":  # Checking if is parentheses open
+                value = self.source[self.position]
+                type = PAR_IN
+                self.next = Token(type=type, value=value)
+                self.position += 1
+                return
+            elif self.source[self.position] == ")":  # Checking if is parentheses close
+                value = self.source[self.position]
+                type = PAR_OUT
+                self.next = Token(type=type, value=value)
+                self.position += 1
+                return
             elif self.source[self.position] == " ":
                 self.position += 1
                 continue
@@ -82,61 +96,62 @@ class ParserError(Exception):
 
 class Parser:
     tokens = None
-    total = 0
 
     def parseExpression(self):
-        # start at the parseTerm function
-        self.total += self.parseTerm()
+        total = 0
+        total += self.parseTerm()
         while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
             if self.tokens.next.type == PLUS:
+                self.tokens.selectNext()
                 left = self.parseTerm()
-                self.total += left
-
-            if self.tokens.next.type == MINUS:
+                total += left
+            elif self.tokens.next.type == MINUS:
+                self.tokens.selectNext()
                 left = self.parseTerm()
-                self.total -= left
-
-        if self.tokens.next.type == EOF:
-            return self.total
-        else:
-            print(self.tokens.next.type)
-            raise Exception("Code don't make sense")
+                total -= left
+            
+        return total
 
     def parseTerm(self):
-        self.tokens.selectNext()
-        first_token = self.tokens.next
-        # checking if first token is INT
-        if first_token.type == INT:
-            totalTerm = int(first_token.value)
+        total = 0
+        total += self.parseFactor()
+        while self.tokens.next.type == TIMES or self.tokens.next.type == DIV:
+            if self.tokens.next.type == TIMES:
+                self.tokens.selectNext()
+                left = self.parseFactor()
+                total *= left
+            elif self.tokens.next.type == DIV:
+                self.tokens.selectNext()
+                left = self.parseFactor()
+                total //= left
+            
+        return total
+        
+    def parseFactor(self):
+        totalparcial = 1
+        if self.tokens.next.type == INT:
+            totalparcial = self.tokens.next.value
             self.tokens.selectNext()
-            while self.tokens.next.type == TIMES or self.tokens.next.type == DIV:
-                if self.tokens.next.type == TIMES:
-                    self.tokens.selectNext()
-                    if self.tokens.next.type == INT:
-                        totalTerm *= int(self.tokens.next.value)
-                        self.tokens.selectNext()
-                    else:
-                        raise Exception("Code don't make sense")
-                if self.tokens.next.type == DIV:
-                    self.tokens.selectNext()
-                    if self.tokens.next.type == INT:
-                        totalTerm //= int(self.tokens.next.value)
-                        self.tokens.selectNext()
-                    else:
-                        raise Exception("Code don't make sense")
-            if (
-                self.tokens.next.type == PLUS
-                or self.tokens.next.type == MINUS
-                or self.tokens.next.type == EOF
-            ):
-                return totalTerm
+        elif self.tokens.next.type == PLUS:
+            self.tokens.selectNext()
+            totalparcial = 1*self.parseFactor()
+        elif self.tokens.next.type == MINUS:
+            self.tokens.selectNext()
+            totalparcial = -1*self.parseFactor()
+        elif self.tokens.next.type == PAR_IN:
+            self.tokens.selectNext()
+            totalparcial = self.parseExpression()
+            if self.tokens.next.type == PAR_OUT:
+                self.tokens.selectNext()
             else:
-                raise Exception("Code donn't make sense")
+                raise Exception()
         else:
-            raise Exception("Code don't make sense")
-
+            raise Exception()
+        return totalparcial
+    
     def run(self, code):
         self.tokens = Tokenizer(code)
+        self.tokens.selectNext()
         return self.parseExpression()
 
 
