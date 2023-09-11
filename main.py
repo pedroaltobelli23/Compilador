@@ -109,6 +109,10 @@ class Parser:
                 self.tokens.selectNext()
                 left = self.parseTerm()
                 total -= left
+        
+        if self.tokens.next.type == INT:
+            raise Exception("Code Incorrect")
+        
             
         return total
 
@@ -126,7 +130,7 @@ class Parser:
                 total //= left
             
         return total
-        
+    
     def parseFactor(self):
         totalparcial = 1
         if self.tokens.next.type == INT:
@@ -144,26 +148,26 @@ class Parser:
             if self.tokens.next.type == PAR_OUT:
                 self.tokens.selectNext()
             else:
-                raise Exception()
+                raise Exception("Code Incorrect")
         else:
-            raise Exception()
+            raise Exception("Code Incorrect")
         return totalparcial
     
     def run(self, code):
         self.tokens = Tokenizer(code)
         self.tokens.selectNext()
-        return self.parseExpression()
+        total = self.parseExpression()
+        if self.tokens.next.type == EOF:
+            return total
+        else:
+            raise Exception("Code Incorrect")
 
 
 if __name__ == "__main__":
     chain = sys.argv[1]
 
-    # # cleaning string
-    # for char in raw_chain:
-    #     if char != " ":
-    #         chain += char
-
     parser = Parser()
 
     final = parser.run(chain)
+    
     print(final)
