@@ -108,7 +108,7 @@ class Parser:
                 node = BinOp(PLUS,[node,self.parseTerm()])
             elif self.tokens.next.type == MINUS:
                 self.tokens.selectNext()
-                node = BinOp(PLUS,[node,self.parseTerm()])
+                node = BinOp(MINUS,[node,self.parseTerm()])
         
         if self.tokens.next.type == INT:
             raise Exception("Code Incorrect")
@@ -130,7 +130,6 @@ class Parser:
         return node
     
     def parseFactor(self):
-        totalparcial = 1
         node = 0
         if self.tokens.next.type == INT:
             node = IntVal(self.tokens.next.value, [])
