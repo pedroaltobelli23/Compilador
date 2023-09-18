@@ -155,8 +155,10 @@ class Parser:
         return node
     
     def run(self, code):
-        filtered = PrePro(code).filter()
-        print(filtered)
+        file = open(code,"r")
+        new = file.read()
+        file.close()
+        filtered = PrePro(new).filter()
         filtered = filtered.replace(" ", "")
         self.tokens = Tokenizer(filtered)
         self.tokens.selectNext()
