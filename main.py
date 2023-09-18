@@ -16,7 +16,7 @@ class PrePro:
         self.source = source
         
     def filter(self):
-        return re.sub(r"(/\*([^*]|(\*+[^*/]))*\*+/)|(//.*)","",self.source,flags=re.MULTILINE)
+        return re.sub(r"\/\/.*$","",self.source,flags=re.MULTILINE)
         
 class Token:
     def __init__(self, type, value):
@@ -156,6 +156,8 @@ class Parser:
     
     def run(self, code):
         filtered = PrePro(code).filter()
+        print(filtered)
+        filtered = filtered.replace(" ", "")
         self.tokens = Tokenizer(filtered)
         self.tokens.selectNext()
         master_node = self.parseExpression()
