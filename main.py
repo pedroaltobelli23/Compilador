@@ -159,12 +159,12 @@ class Parser:
         new = file.read()
         file.close()
         filtered = PrePro(new).filter()
-        filtered = filtered.replace(" ", "")
+        filtered = filtered.strip()
         self.tokens = Tokenizer(filtered)
         self.tokens.selectNext()
         master_node = self.parseExpression()
         if self.tokens.next.type == EOF:
-            return master_node .Evaluate()
+            return master_node.Evaluate()
         else:
             raise Exception("Code Incorrect")
 
