@@ -1,6 +1,6 @@
 import sys
 import re
-
+from abstractsyntaxtree import Node,BinOp,UnOp,IntVal
 
 PLUS = "+"
 MINUS = "-"
@@ -11,12 +11,17 @@ EOF = "End of File"
 PAR_IN = "("
 PAR_OUT = ")"
 
-
+class PrePro:
+    def __init__(self,source):
+        self.source = source
+        
+    def filter(self):
+        return re.sub(r"(/\*([^*]|(\*+[^*/]))*\*+/)|(//.*)","",self.source,flags=re.MULTILINE)
+        
 class Token:
     def __init__(self, type, value):
         self.type = type
         self.value = value
-
 
 class Tokenizer:
     def __init__(self, source, next=None, position=0):
@@ -89,79 +94,75 @@ class Tokenizer:
             else:
                 raise Exception("Incorrect value")
 
-
 class ParserError(Exception):
     pass
-
 
 class Parser:
     tokens = None
 
     def parseExpression(self):
-        total = 0
-        total += self.parseTerm()
+        node = self.parseTerm()
         while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
             if self.tokens.next.type == PLUS:
                 self.tokens.selectNext()
-                left = self.parseTerm()
-                total += left
+                node = BinOp(PLUS,[node,self.parseTerm()])
             elif self.tokens.next.type == MINUS:
                 self.tokens.selectNext()
-                left = self.parseTerm()
-                total -= left
+                node = BinOp(PLUS,[node,self.parseTerm()])
         
         if self.tokens.next.type == INT:
             raise Exception("Code Incorrect")
-        
-            
-        return total
+           
+        return node
 
     def parseTerm(self):
-        total = 0
-        total += self.parseFactor()
+        node = self.parseFactor()
         while self.tokens.next.type == TIMES or self.tokens.next.type == DIV:
             if self.tokens.next.type == TIMES:
                 self.tokens.selectNext()
-                left = self.parseFactor()
-                total *= left
+                node = BinOp(TIMES,[node,self.parseFactor()])
             elif self.tokens.next.type == DIV:
                 self.tokens.selectNext()
-                left = self.parseFactor()
-                total //= left
+                node = BinOp(DIV,[node,self.parseFactor()])
+            else:
+                raise Exception("Code Incorrect")
             
-        return total
+        return node
     
     def parseFactor(self):
         totalparcial = 1
+        node = 0
         if self.tokens.next.type == INT:
-            totalparcial = self.tokens.next.value
+            node = IntVal(self.tokens.next.value, [])
             self.tokens.selectNext()
         elif self.tokens.next.type == PLUS:
             self.tokens.selectNext()
-            totalparcial = 1*self.parseFactor()
+            node = UnOp(PLUS,[self.parseFactor()])
         elif self.tokens.next.type == MINUS:
             self.tokens.selectNext()
-            totalparcial = -1*self.parseFactor()
+            node = UnOp(MINUS,[self.parseFactor()])
+            
         elif self.tokens.next.type == PAR_IN:
             self.tokens.selectNext()
-            totalparcial = self.parseExpression()
+            node = self.parseExpression()
             if self.tokens.next.type == PAR_OUT:
                 self.tokens.selectNext()
             else:
                 raise Exception("Code Incorrect")
         else:
             raise Exception("Code Incorrect")
-        return totalparcial
+        
+        return node
     
     def run(self, code):
-        self.tokens = Tokenizer(code)
+        filtered = PrePro(code).filter()
+        self.tokens = Tokenizer(filtered)
         self.tokens.selectNext()
-        total = self.parseExpression()
+        master_node = self.parseExpression()
         if self.tokens.next.type == EOF:
-            return total
+            return master_node .Evaluate()
         else:
             raise Exception("Code Incorrect")
-
 
 if __name__ == "__main__":
     chain = sys.argv[1]
