@@ -1,6 +1,6 @@
 import sys
 import re
-from abstractsyntaxtree import Node,BinOp,UnOp,IntVal
+from abstractsyntaxtree import Node,BinOp,UnOp,IntVal,SymbolTable,Identifier,Assigment,Println,Block,NoOp
 
 PLUS = "+"
 MINUS = "-"
@@ -10,13 +10,18 @@ INT = "INTEGER"
 EOF = "End of File"
 PAR_IN = "("
 PAR_OUT = ")"
+IDENTIFIER = "IDENTIFIER"
+EQUAL = "="
+PRINT = "println"
+END = "\n"
 
 class PrePro:
     def __init__(self,source):
         self.source = source
         
     def filter(self):
-        return re.sub(r"\/\/.*$","",self.source,flags=re.MULTILINE)
+        a = re.sub(r"\/\/.*$","",self.source)
+        return a
         
 class Token:
     def __init__(self, type, value):
@@ -88,10 +93,34 @@ class Tokenizer:
                 self.next = Token(type=type, value=value)
                 self.position += 1
                 return
+            elif self.source[self.position] == "=":  # Checking if is equal
+                value = self.source[self.position]
+                type = EQUAL
+                self.next = Token(type=type, value=value)
+                self.position += 1
+                return
+            elif self.source[self.position] == "\n":  # Checking if is end
+                value = self.source[self.position]
+                type = END
+                self.next = Token(type=type, value=value)
+                self.position += 1
+                return
+            elif re.match("[a-zA-Z]", self.source[self.position]):  # Checking if is IDENTIFIER
+                while self.position < len(self.source) and re.match(r"[a-zA-Z1-9_]", self.source[self.position]):
+                    value += self.source[self.position]
+                    self.position += 1
+                if value == PRINT:
+                    type = PRINT
+                    self.next = Token(type=type, value=str(value))
+                else:
+                    type = IDENTIFIER
+                    self.next = Token(type=type, value=str(value))
+                return
             elif self.source[self.position] == " ":
                 self.position += 1
                 continue
             else:
+                print(self.source[self.position])
                 raise Exception("Incorrect value")
 
 class ParserError(Exception):
@@ -100,6 +129,48 @@ class ParserError(Exception):
 class Parser:
     tokens = None
 
+    def parseBlock(self):
+        childrens = []
+        while self.tokens.next.type != EOF:
+            node = self.parseStatement()
+            childrens.append(node)
+        master = Block(None,childrens)
+        return master
+    
+    def parseStatement(self):
+        if self.tokens.next.type == END:
+            self.tokens.selectNext()
+            variable = NoOp("N",[])
+            return variable
+        elif self.tokens.next.type == IDENTIFIER:
+            variable = Identifier(self.tokens.next.value,[])
+            self.tokens.selectNext()
+            if self.tokens.next.type == EQUAL:
+                self.tokens.selectNext()
+                variable = Assigment(EQUAL,[variable,self.parseExpression()])
+            else:
+                raise Exception("Code Incorrect")
+        elif self.tokens.next.type == PRINT:
+            self.tokens.selectNext()
+            if self.tokens.next.type == PAR_IN:
+                self.tokens.selectNext()
+                variable = Println(PRINT,[self.parseExpression()])
+                if self.tokens.next.type == PAR_OUT:
+                    self.tokens.selectNext()
+                    if self.tokens.next.type == END:
+                        self.tokens.selectNext()
+                    else:
+                        raise Exception("Code Incorrect")
+                else:
+                    raise Exception("Code is Incorrect")
+        elif self.tokens.next.type == END:
+            self.tokens.selectNext()
+            variable = NoOp("N",[])
+        else:
+            raise Exception("Code Incorrect")
+            
+        return variable
+    
     def parseExpression(self):
         node = self.parseTerm()
         while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
@@ -109,7 +180,7 @@ class Parser:
             elif self.tokens.next.type == MINUS:
                 self.tokens.selectNext()
                 node = BinOp(MINUS,[node,self.parseTerm()])
-        
+                
         if self.tokens.next.type == INT:
             raise Exception("Code Incorrect")
            
@@ -140,7 +211,6 @@ class Parser:
         elif self.tokens.next.type == MINUS:
             self.tokens.selectNext()
             node = UnOp(MINUS,[self.parseFactor()])
-            
         elif self.tokens.next.type == PAR_IN:
             self.tokens.selectNext()
             node = self.parseExpression()
@@ -148,6 +218,9 @@ class Parser:
                 self.tokens.selectNext()
             else:
                 raise Exception("Code Incorrect")
+        elif self.tokens.next.type == IDENTIFIER:
+            node = Identifier(self.tokens.next.value,[])
+            self.tokens.selectNext()
         else:
             raise Exception("Code Incorrect")
         
@@ -158,12 +231,13 @@ class Parser:
         new = file.read()
         file.close()
         filtered = PrePro(new).filter()
-        filtered = filtered.strip()
+        identifier_table = SymbolTable()
         self.tokens = Tokenizer(filtered)
         self.tokens.selectNext()
-        master_node = self.parseExpression()
+        master_node = self.parseBlock()
         if self.tokens.next.type == EOF:
-            return master_node.Evaluate()
+            a = master_node.Evaluate(identifier_table)
+            return a
         else:
             raise Exception("Code Incorrect")
 
@@ -173,5 +247,3 @@ if __name__ == "__main__":
     parser = Parser()
 
     final = parser.run(chain)
-    
-    print(final)
