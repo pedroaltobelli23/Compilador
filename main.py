@@ -12,7 +12,7 @@ PAR_IN = "("
 PAR_OUT = ")"
 IDENTIFIER = "IDENTIFIER"
 EQUAL = "="
-PRINT = "println"
+PRINT = "Println"
 END = "\n"
 
 class PrePro:
@@ -20,9 +20,13 @@ class PrePro:
         self.source = source
         
     def filter(self):
-        a = re.sub(r"\/\/.*$","",self.source)
-        return a
-        
+        with open(self.source, 'r') as input_file:
+                code = input_file.read()
+
+        # Use regular expressions to remove inline comments (// ...)
+        code = re.sub(r'//.*', '', code)
+        return code
+      
 class Token:
     def __init__(self, type, value):
         self.type = type
@@ -44,7 +48,10 @@ class Tokenizer:
             self.next = Token(type=type, value=value)
             return
 
-        while self.position != len(self.source):
+        while self.position < len(self.source):
+            if self.position >= len(self.source):
+                self.next = Token(EOF, " ")
+                return
             if re.match("[0-9]", self.source[self.position]):  # Checking if is number
                 while self.position < len(self.source):
                     if re.match(r"[0-9]", self.source[self.position]):
@@ -138,11 +145,7 @@ class Parser:
         return master
     
     def parseStatement(self):
-        if self.tokens.next.type == END:
-            self.tokens.selectNext()
-            variable = NoOp("N",[])
-            return variable
-        elif self.tokens.next.type == IDENTIFIER:
+        if self.tokens.next.type == IDENTIFIER:
             variable = Identifier(self.tokens.next.value,[])
             self.tokens.selectNext()
             if self.tokens.next.type == EQUAL:
@@ -222,19 +225,19 @@ class Parser:
             node = Identifier(self.tokens.next.value,[])
             self.tokens.selectNext()
         else:
+            print(self.tokens.next.type)
+            print(self.tokens.next.value)
             raise Exception("Code Incorrect")
         
         return node
     
     def run(self, code):
-        file = open(code,"r")
-        new = file.read()
-        file.close()
-        filtered = PrePro(new).filter()
+        filtered = PrePro(code).filter()
         identifier_table = SymbolTable()
         self.tokens = Tokenizer(filtered)
         self.tokens.selectNext()
         master_node = self.parseBlock()
+        
         if self.tokens.next.type == EOF:
             a = master_node.Evaluate(identifier_table)
             return a
