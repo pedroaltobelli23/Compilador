@@ -1,6 +1,6 @@
 import sys
 import re
-from abstractsyntaxtree import Node,BinOp,UnOp,IntVal,SymbolTable,Identifier,Assigment,Println,Block,NoOp
+from abstractsyntaxtree import Node,BinOp,UnOp,IntVal,SymbolTable,Identifier,Assigment,Println,Block,NoOp,Scanln
 
 PLUS = "+"
 MINUS = "-"
@@ -12,7 +12,16 @@ PAR_IN = "("
 PAR_OUT = ")"
 IDENTIFIER = "IDENTIFIER"
 EQUAL = "="
+NOT = "!"
 PRINT = "Println"
+SCAN = "Scanln"
+AND = "&&"
+COMPARE = "=="
+OR = "||"
+GT = ">"
+LT = "<"
+IF = "if"
+FOR = "for"
 END = "\n"
 
 class PrePro:
@@ -39,13 +48,8 @@ class Tokenizer:
         self.position = position
 
     def selectNext(self):
-        value = ""
-        type = None
-
-        if self.position >= len(self.source):
-            value = "EOF"
-            type = EOF
-            self.next = Token(type=type, value=value)
+        if self.position >= len(self.source): # Checking if is EOF
+            self.next = Token(type=EOF, value="EOF")
             return
 
         while self.position < len(self.source):
@@ -53,77 +57,97 @@ class Tokenizer:
                 self.next = Token(EOF, " ")
                 return
             if re.match("[0-9]", self.source[self.position]):  # Checking if is number
+                val = ""
                 while self.position < len(self.source):
                     if re.match(r"[0-9]", self.source[self.position]):
-                        value += self.source[self.position]
+                        val += self.source[self.position]
                         self.position += 1
                     else:
-                        type = INT
-                        self.next = Token(type=type, value=int(value))
+                        self.next = Token(type=INT, value=int(val))
                         return
-                type = INT
-                self.next = Token(type=type, value=int(value))
+                self.next = Token(type=INT, value=int(val))
                 return
             elif self.source[self.position] == "+":  # Checking if is plus
-                value = self.source[self.position]
-                type = PLUS
-                self.next = Token(type=type, value=value)
+                self.next = Token(type=PLUS, value=self.source[self.position])
                 self.position += 1
                 return
             elif self.source[self.position] == "-":  # Checking if is minus
-                value = self.source[self.position]
-                type = MINUS
-                self.next = Token(type=type, value=value)
+                self.next = Token(type=MINUS, value=self.source[self.position])
                 self.position += 1
                 return
             elif self.source[self.position] == "*":  # Checking if is times
-                value = self.source[self.position]
-                type = TIMES
-                self.next = Token(type=type, value=value)
+                self.next = Token(type=TIMES, value=self.source[self.position])
                 self.position += 1
                 return
             elif self.source[self.position] == "/":  # Checking if is division
-                value = self.source[self.position]
-                type = DIV
-                self.next = Token(type=type, value=value)
+                self.next = Token(type=DIV, value=self.source[self.position])
                 self.position += 1
                 return
             elif self.source[self.position] == "(":  # Checking if is parentheses open
-                value = self.source[self.position]
-                type = PAR_IN
-                self.next = Token(type=type, value=value)
+                self.next = Token(type=PAR_IN, value=self.source[self.position])
                 self.position += 1
                 return
             elif self.source[self.position] == ")":  # Checking if is parentheses close
-                value = self.source[self.position]
-                type = PAR_OUT
-                self.next = Token(type=type, value=value)
+                self.next = Token(type=PAR_OUT, value=self.source[self.position])
                 self.position += 1
                 return
             elif self.source[self.position] == "=":  # Checking if is equal
-                value = self.source[self.position]
-                type = EQUAL
-                self.next = Token(type=type, value=value)
                 self.position += 1
+                if self.source[self.position] == "=": # Checking if is ==
+                    self.next = Token(type=COMPARE, value=self.source[self.position])
+                    self.position += 1
+                else:
+                    self.next = Token(type=EQUAL, value=self.source[self.position])
                 return
             elif self.source[self.position] == "\n":  # Checking if is end
-                value = self.source[self.position]
-                type = END
-                self.next = Token(type=type, value=value)
+                self.next = Token(type=END, value=self.source[self.position])
                 self.position += 1
                 return
             elif re.match("[a-zA-Z]", self.source[self.position]):  # Checking if is IDENTIFIER
+                val = ""
                 while self.position < len(self.source) and re.match(r"[a-zA-Z1-9_]", self.source[self.position]):
-                    value += self.source[self.position]
+                    val += self.source[self.position]
                     self.position += 1
-                if value == PRINT:
-                    type = PRINT
-                    self.next = Token(type=type, value=str(value))
+                if val == PRINT:
+                    self.next = Token(type=PRINT, value=str(val))
+                elif val == SCAN:
+                    self.next = Token(type=SCAN,value=str(val))
+                elif val == IF:
+                    self.next = Token(type=IF,value=str(val))
+                elif val == FOR:
+                    self.next = Token(type=FOR,value=str(val))
                 else:
-                    type = IDENTIFIER
-                    self.next = Token(type=type, value=str(value))
+                    self.next = Token(type=IDENTIFIER, value=str(val))
                 return
-            elif self.source[self.position] == " ":
+            elif self.source[self.position] == ">":  # Checking if is >
+                self.next = Token(type=GT, value=self.source[self.position])
+                self.position += 1
+                return
+            elif self.source[self.position] == "<":  # Checking if is <
+                self.next = Token(type=LT, value=self.source[self.position])
+                self.position += 1
+                return
+            elif self.source[self.position] == "!":  # Checking if is !
+                self.next = Token(type=NOT, value=self.source[self.position])
+                self.position += 1
+                return
+            elif self.source[self.position] == "|":  # Checking if is ||
+                self.position += 1
+                if self.source[self.position] == "|":
+                    self.next = Token(type=OR, value=self.source[self.position])
+                    self.position += 1
+                    return
+                else:
+                    raise Exception("| is not valid, try ||")
+            elif self.source[self.position] == "&":  # Checking if is &&
+                self.position += 1
+                if self.source[self.position] == "&":
+                    self.next = Token(type=AND, value=self.source[self.position])
+                    self.position += 1
+                    return
+                else:
+                    raise Exception("& is not valid, try &&")
+            elif self.source[self.position] == " ": # jumping spaces
                 self.position += 1
                 continue
             else:
@@ -135,6 +159,45 @@ class ParserError(Exception):
 
 class Parser:
     tokens = None
+
+    def parseBoolExpression(self):
+        node = self.parseBoolTerm()
+        while self.tokens.next.type == OR:
+            self.tokens.selectNext()
+            node = BinOp(OR,[node,self.parseBoolTerm()])
+            
+        if self.tokens.next.type == INT:
+            raise Exception("Code Incorrect")
+           
+        return node
+    
+    def parseBoolTerm(self):
+        node = self.parseRelExpression()
+        while self.tokens.next.type == AND:
+            self.tokens.selectNext()
+            node = BinOp(AND,[node,self.parseRelExpression()])
+            
+        if self.tokens.next.type == INT:
+            raise Exception("Code Incorrect")
+        return None
+    
+    def parseRelExpression(self):
+        node = self.parseExpression()
+        while self.tokens.next.type == COMPARE or self.tokens.next.type == GT or self.tokens.next.type == LT :
+            if self.tokens.next.type == COMPARE:
+                self.tokens.selectNext()
+                node = BinOp(COMPARE,[node,self.parseExpression()])
+            elif self.tokens.next.type == GT:
+                self.tokens.selectNext()
+                node = BinOp(GT,[node,self.parseExpression()])
+            elif self.tokens.next.type == LT:
+                self.tokens.selectNext()
+                node = BinOp(LT,[node,self.parseExpression()])
+                
+        if self.tokens.next.type == INT:
+            raise Exception("Code Incorrect")
+        
+        return node
 
     def parseBlock(self):
         childrens = []
@@ -150,7 +213,7 @@ class Parser:
             self.tokens.selectNext()
             if self.tokens.next.type == EQUAL:
                 self.tokens.selectNext()
-                variable = Assigment(EQUAL,[variable,self.parseExpression()])
+                variable = Assigment(EQUAL,[variable,self.parseBoolExpression()])
             else:
                 raise Exception("Code Incorrect")
         elif self.tokens.next.type == PRINT:
@@ -168,10 +231,9 @@ class Parser:
                     raise Exception("Code is Incorrect")
         elif self.tokens.next.type == END:
             self.tokens.selectNext()
-            variable = NoOp("N",[])
+            variable = NoOp("NoOp",[])
         else:
             raise Exception("Code Incorrect")
-            
         return variable
     
     def parseExpression(self):
@@ -205,25 +267,39 @@ class Parser:
     
     def parseFactor(self):
         node = 0
-        if self.tokens.next.type == INT:
+        if self.tokens.next.type == INT: # Number
             node = IntVal(self.tokens.next.value, [])
             self.tokens.selectNext()
-        elif self.tokens.next.type == PLUS:
+        elif self.tokens.next.type == IDENTIFIER: # Identifier
+            node = Identifier(self.tokens.next.value,[])
+            self.tokens.selectNext()
+        elif self.tokens.next.type == PLUS: # Plus signal
             self.tokens.selectNext()
             node = UnOp(PLUS,[self.parseFactor()])
-        elif self.tokens.next.type == MINUS:
+        elif self.tokens.next.type == MINUS: # Minus signal
             self.tokens.selectNext()
             node = UnOp(MINUS,[self.parseFactor()])
-        elif self.tokens.next.type == PAR_IN:
+        elif self.tokens.next.type == NOT: # Not signal
             self.tokens.selectNext()
-            node = self.parseExpression()
+            node = UnOp(NOT,[self.parseFactor()])
+        elif self.tokens.next.type == PAR_IN: # Parenteshis open
+            self.tokens.selectNext()
+            node = self.parseBoolExpression()
             if self.tokens.next.type == PAR_OUT:
                 self.tokens.selectNext()
             else:
                 raise Exception("Code Incorrect")
-        elif self.tokens.next.type == IDENTIFIER:
-            node = Identifier(self.tokens.next.value,[])
-            self.tokens.selectNext()
+        # elif self.tokens.next.type == SCAN:
+        #     self.tokens.selectNext()
+        #     if self.tokens.next.type == PAR_IN:
+        #         self.tokens.selectNext()
+        #         node = Scanln(SCAN,[])
+        #         if self.tokens.next.type == PAR_OUT:
+        #             self.tokens.selectNext()
+        #         else:
+        #             raise Exception("Code Incorrect")
+        #     else:
+        #         raise Exception("Code Incorrect")
         else:
             print(self.tokens.next.type)
             print(self.tokens.next.value)
