@@ -80,14 +80,26 @@ class Assigment(Node):
 class Println(Node):
     def Evaluate(self, table: SymbolTable):
         print(self.children[0].Evaluate(table))
-
-
+        
 class Scanln(Node):
     def Evaluate(self, table: SymbolTable):
-        pass
-
+        return int(input())
 
 class Block(Node):
     def Evaluate(self, table: SymbolTable):
         for node in self.children:
             node.Evaluate(table)
+            
+class IFNode(Node):
+    def Evaluate(self, table: SymbolTable):
+        if self.children[0].Evaluate(table):
+            self.children[1].Evaluate(table)
+        elif len(self.children) > 2:
+            self.children[2].Evaluate(table)
+
+class FORNode(Node):
+    def Evaluate(self, table: SymbolTable):
+        self.children[0].Evaluate(table)
+        while self.children[1].Evaluate(table):
+            self.children[2].Evaluate(table)
+            self.children[3].Evaluate(table)
