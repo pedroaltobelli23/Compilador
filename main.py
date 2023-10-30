@@ -105,14 +105,15 @@ class Tokenizer:
             elif self.source[self.position] == '"': # checking if is string
                 string_value = ""
                 self.position+=1
-                while (self.position < len(self.source)) and self.source[self.position] != '"':
-                    if self.source[self.position] == "\n":
-                        raise Exception("Error")
-                    string_value+=self.source[self.position]
-                    self.position+=1
-                self.position+=1
-                self.next = Token(type=STR, value=str(string_value))
-                return
+                while (self.position < len(self.source)):
+                    if self.source[self.position] != '"':
+                        string_value+=self.source[self.position]
+                        self.position+=1
+                    else:
+                        self.position+=1
+                        self.next = Token(type=STR, value=str(string_value))
+                        return
+                raise Exception("String Incorrect")
             elif self.source[self.position] == "+":  # Checking if is plus
                 self.next = Token(type=PLUS, value=self.source[self.position])
                 self.position += 1
