@@ -14,6 +14,8 @@ from abstractsyntaxtree import (
     Scanln,
     IFNode,
     FORNode,
+    VarDec,
+    StrVal,
 )
 
 PLUS = "+"
@@ -21,6 +23,10 @@ MINUS = "-"
 TIMES = "*"
 DIV = "/"
 INT = "INTEGER"
+STR = "STRING"
+VAR = "var"
+T_INT = "int"
+T_STRING = "str"
 PAR_IN = "("
 PAR_OUT = ")"
 BRA_IN = "{"
@@ -29,6 +35,7 @@ SEMICOLUMN = ";"
 IDENTIFIER = "IDENTIFIER"
 EQUAL = "="
 NOT = "!"
+CONCAT = "."
 PRINT = "Println"
 SCAN = "Scanln"
 AND = "&&"
@@ -95,6 +102,15 @@ class Tokenizer:
                         return
                 self.next = Token(type=INT, value=int(val))
                 return
+            elif self.source[self.position] == '"': # checking if is string
+                string_value = ""
+                self.position+=1
+                while (self.position < len(self.source)) and self.source[self.position] != '"':
+                    string_value+=self.source[self.position]
+                    self.position+=1
+                self.position+=1
+                self.next = Token(type=STR, value=str(string_value))
+                return
             elif self.source[self.position] == "+":  # Checking if is plus
                 self.next = Token(type=PLUS, value=self.source[self.position])
                 self.position += 1
@@ -154,8 +170,15 @@ class Tokenizer:
                     self.next = Token(type=ELSE, value=str(val))
                 elif val == FOR:
                     self.next = Token(type=FOR, value=str(val))
+                elif val == VAR:
+                    self.next = Token(type=VAR, value=str(val))
+                elif val == T_INT:
+                    self.next = Token(type=T_INT, value=str(val))
+                elif val == T_STRING:
+                    self.next = Token(type=T_STRING, value=str(val))
                 else:
                     self.next = Token(type=IDENTIFIER, value=str(val))
+                
                 return
             elif self.source[self.position] == ">":  # Checking if is >
                 self.next = Token(type=GT, value=self.source[self.position])
@@ -167,6 +190,10 @@ class Tokenizer:
                 return
             elif self.source[self.position] == "!":  # Checking if is !
                 self.next = Token(type=NOT, value=self.source[self.position])
+                self.position += 1
+                return
+            elif self.source[self.position] == ".":  # Checking if is .
+                self.next = Token(type=CONCAT, value=self.source[self.position])
                 self.position += 1
                 return
             elif self.source[self.position] == "|":  # Checking if is ||
@@ -292,7 +319,24 @@ class Parser:
                     else:
                         raise Exception("Code Incorrect")
                 else:
+                    print(self.tokens.next.type)
                     raise Exception("Code is Incorrect")
+        elif self.tokens.next.type == VAR:
+            self.tokens.selectNext()
+            if self.tokens.next.type == IDENTIFIER:
+                name = self.tokens.next.value
+                self.tokens.selectNext()
+                if self.tokens.next.type in [T_INT,T_STRING]:
+                    variable_type = self.tokens.next.type
+                    self.tokens.selectNext()
+                    if self.tokens.next.type == EQUAL:
+                        self.tokens.selectNext()
+                        variable = VarDec(variable_type,[name,self.parseBoolExpression()])
+                    elif self.tokens.next.type == EOF or self.tokens.next.type == END:
+                        variable = VarDec(variable_type,[name])
+                        self.tokens.selectNext()
+                    else:
+                        raise Exception("Code is Incorrect")
         elif self.tokens.next.type == IF:
             self.tokens.selectNext()
             condition_node = self.parseBoolExpression()
@@ -348,21 +392,25 @@ class Parser:
             self.tokens.selectNext()
             variable = NoOp("NoOp", [])
         else:
+            # print(self.tokens.next.type)
             raise Exception("Code Incorrect")
         
         return variable
 
     def parseExpression(self):
         node = self.parseTerm()
-        while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS:
+        while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS or self.tokens.next.type==CONCAT:
             if self.tokens.next.type == PLUS:
                 self.tokens.selectNext()
                 node = BinOp(PLUS, [node, self.parseTerm()])
             elif self.tokens.next.type == MINUS:
                 self.tokens.selectNext()
                 node = BinOp(MINUS, [node, self.parseTerm()])
+            elif self.tokens.next.type == CONCAT:
+                self.tokens.selectNext()
+                node = BinOp(CONCAT, [node, self.parseTerm()])
 
-        if self.tokens.next.type == INT:
+        if self.tokens.next.type == INT or self.tokens.next.type == STR:
             raise Exception("Code Incorrect")
 
         return node
@@ -388,6 +436,9 @@ class Parser:
             self.tokens.selectNext()
             if self.tokens.next.type == INT:
                 raise Exception("Code Incorrect")
+        elif self.tokens.next.type == STR: # String
+            node = StrVal(self.tokens.next.value, [])
+            self.tokens.selectNext()
         elif self.tokens.next.type == IDENTIFIER:  # Identifier
             node = Identifier(self.tokens.next.value, [])
             self.tokens.selectNext()
@@ -428,10 +479,12 @@ class Parser:
         self.tokens = Tokenizer(filtered)
         self.tokens.selectNext()
         list_of_nodes = self.parseProgram()
-
+        # print("Resposta: ")
         if self.tokens.next.type == EOF:
             for node in list_of_nodes:
                 node.Evaluate(identifier_table)
+            # print("Table")
+            # print(identifier_table.table)
         else:
             raise Exception("Code Incorrect")
 
