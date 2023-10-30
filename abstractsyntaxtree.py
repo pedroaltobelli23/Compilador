@@ -39,7 +39,7 @@ class BinOp(Node):
         var2 = self.children[1].Evaluate(table)
         
         if self.value == ".":
-            return (str(var1[0])+str(var2[0]),"str")
+            return (str(var1[0])+str(var2[0]),"string")
         
         if var1[1] == var2[1]:
             if self.value == "+":
@@ -86,7 +86,7 @@ class IntVal(Node):
     
 class StrVal(Node):
     def Evaluate(self, table: SymbolTable):
-        return (self.value,"str")
+        return (self.value,"string")
 
 class NoOp(Node):
     def Evaluate(self, table: SymbolTable):
