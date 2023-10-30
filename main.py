@@ -106,6 +106,8 @@ class Tokenizer:
                 string_value = ""
                 self.position+=1
                 while (self.position < len(self.source)) and self.source[self.position] != '"':
+                    if self.source[self.position] == "\n":
+                        raise Exception("Error")
                     string_value+=self.source[self.position]
                     self.position+=1
                 self.position+=1
