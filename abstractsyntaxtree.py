@@ -37,7 +37,11 @@ class BinOp(Node):
     def Evaluate(self, table: SymbolTable):
         var1 = self.children[0].Evaluate(table)
         var2 = self.children[1].Evaluate(table)
-        if var1[1] == "int" and var2[1] == "int":
+        
+        if self.value == ".":
+            return (str(var1[0])+str(var2[0]),"str")
+        
+        if var1[1] == var2[1]:
             if self.value == "+":
                 return (var1[0] + var2[0],"int")
             elif self.value == "-":
@@ -47,20 +51,15 @@ class BinOp(Node):
             elif self.value == "/":
                 return (var1[0] // var2[0],"int")
             elif self.value == "||":
-                return (var1[0] | var2[0],"int")
+                return (int(var1[0] | var2[0]),"int")
             elif self.value == "&&":
-                return (var1[0] & var2[0],"int")
+                return (int(var1[0] & var2[0]),"int")
             elif self.value == "==":
-                return (var1[0] == var2[0],"int")
+                return (int(var1[0] == var2[0]),"int")
             elif self.value == ">":
-                return (var1[0] > var2[0],"int")
+                return (int(var1[0] > var2[0]),"int")
             elif self.value == "<":
-                return (var1[0] < var2[0],"int")
-            else:
-                raise Exception("Error")
-        elif var1[1] == "str" and var2[1] == "str":
-            if self.value == ".":
-                return (var1[0]+var2[0],"str")
+                return (int(var1[0] < var2[0]),"int")
             else:
                 raise Exception("Error")
         else:

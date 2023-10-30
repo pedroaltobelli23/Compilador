@@ -299,6 +299,7 @@ class Parser:
         return node
 
     def parseStatement(self):
+        # print(self.tokens.next.type)
         if self.tokens.next.type == IDENTIFIER:
             variable = Identifier(self.tokens.next.value, [])
             self.tokens.selectNext()
@@ -311,7 +312,7 @@ class Parser:
             self.tokens.selectNext()
             if self.tokens.next.type == PAR_IN:
                 self.tokens.selectNext()
-                variable = Println(PRINT, [self.parseExpression()])
+                variable = Println(PRINT, [self.parseBoolExpression()])
                 if self.tokens.next.type == PAR_OUT:
                     self.tokens.selectNext()
                     if self.tokens.next.type == END or self.tokens.next.type == EOF:
@@ -319,7 +320,7 @@ class Parser:
                     else:
                         raise Exception("Code Incorrect")
                 else:
-                    print(self.tokens.next.type)
+                    # print(self.tokens.next.type)
                     raise Exception("Code is Incorrect")
         elif self.tokens.next.type == VAR:
             self.tokens.selectNext()
