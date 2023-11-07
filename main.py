@@ -489,6 +489,7 @@ class Parser:
                 node.Evaluate(identifier_table)
             # print("Table")
             # print(identifier_table.table)
+            print(Node.assembly)
         else:
             raise Exception("Code Incorrect")
 
