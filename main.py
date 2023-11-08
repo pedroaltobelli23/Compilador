@@ -483,13 +483,13 @@ class Parser:
         self.tokens = Tokenizer(filtered)
         self.tokens.selectNext()
         list_of_nodes = self.parseProgram()
-        # print("Resposta: ")
         if self.tokens.next.type == EOF:
             for node in list_of_nodes:
                 node.Evaluate(identifier_table)
-            # print("Table")
-            # print(identifier_table.table)
-            print(Node.assembly)
+            new_file = chain.replace("go","asm")
+            f = open(new_file,"w")
+            f.write(Node.endcode())
+            f.close()
         else:
             raise Exception("Code Incorrect")
 

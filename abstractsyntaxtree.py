@@ -1,4 +1,3 @@
-header = open("nasmheader.nasm",mode="r")
 class SymbolTable:
     def __init__(self):
         self.table = dict()
@@ -30,7 +29,9 @@ class SymbolTable:
 
 class Node:
     i = 0
-    assembly = ""
+    assembly = open("asmheader.asm",mode="r").read()
+    end_code = open("asmendcode.asm",mode="r").read()
+
     def __init__(self, value, children):
         self.value = value
         self.children = children
@@ -47,6 +48,11 @@ class Node:
     @staticmethod
     def add_line(line):
         Node.assembly+=line + "\n"
+        
+    @staticmethod
+    def endcode():
+        Node.assembly+=Node.end_code
+        return Node.assembly
 
 
 class BinOp(Node):
@@ -80,12 +86,15 @@ class BinOp(Node):
                 return (int(var1[0] & var2[0]),"int")
             elif self.value == "==":
                 Node.add_line("CMP EAX, EBX")
+                Node.add_line("CALL binop_je")
                 return (int(var1[0] == var2[0]),"int")
             elif self.value == ">":
-                Node.add_line("ADD EAX, EBX")
+                Node.add_line("CMP EAX, EBX")
+                Node.add_line("CALL binop_jg")
                 return (int(var1[0] > var2[0]),"int")
             elif self.value == "<":
-                Node.add_line("ADD EAX, EBX")
+                Node.add_line("CMP EAX, EBX")
+                Node.add_line("CALL binop_jl")
                 return (int(var1[0] < var2[0]),"int")
             else:
                 raise Exception("Error")
@@ -122,7 +131,6 @@ class NoOp(Node):
 
 class Identifier(Node):
     def Evaluate(self, table: SymbolTable):
-        print("Usou identifier")
         Node.add_line(f"MOV EAX, [EBP-{table.getter(self.value)[2]*4}]")   
         return table.getter(self.value)
 
@@ -137,19 +145,28 @@ class VarDec(Node):
 class Assigment(Node):
     def Evaluate(self, table: SymbolTable):
         right = self.children[1].Evaluate(table)
-        print("Usou assignment")
         Node.add_line(f"MOV [EBP-{table.getter(self.children[0].value)[2]*4}], EAX")
         table.setter(self.children[0].value, right)
 
 class Println(Node):
     def Evaluate(self, table: SymbolTable):
-        print(self.children[0].Evaluate(table)[0])
+        # print(self.children[0].Evaluate(table)[0])
+        Node.add_line(f"MOV EAX, [EBP-{table.getter(self.children[0].value)[2]*4}]")
         Node.add_line("PUSH EAX")
+        Node.add_line("PUSH formatout")
+        Node.add_line("CALL printf")
+        Node.add_line("ADD ESP, 8")
+        
         
 class Scanln(Node):
     # only work with int, for now
     def Evaluate(self, table: SymbolTable):
-        return (int(input()),"int")
+        Node.add_line("PUSH scanint")
+        Node.add_line("PUSH formatin")
+        Node.add_line("call scanf")
+        Node.add_line("ADD ESP, 8")
+        Node.add_line("MOV EAX, DWORD [scanint]")
+        return (0,"int") # Don't kwon if is correct, but i am using a fix value just to run the code without the need of input
 
 class Block(Node):
     def Evaluate(self, table: SymbolTable):
@@ -158,14 +175,27 @@ class Block(Node):
             
 class IFNode(Node):
     def Evaluate(self, table: SymbolTable):
-        if self.children[0].Evaluate(table)[0]:
-            self.children[1].Evaluate(table)
-        elif len(self.children) > 2:
+        unique_id = self.id
+        Node.add_line(f"IF_{unique_id}:")
+        self.children[0].Evaluate(table)
+        Node.add_line("CMP EAX, False")
+        Node.add_line(f"JE ELSE_{unique_id}")
+        self.children[1].Evaluate(table)
+        Node.add_line(f"JMP ENDIF_{unique_id}")
+        Node.add_line(f"ELSE_{unique_id}:")
+        if len(self.children) > 2:
             self.children[2].Evaluate(table)
+        Node.add_line(f"ENDIF_{unique_id}:")
 
 class FORNode(Node):
     def Evaluate(self, table: SymbolTable):
+        unique_id = self.id
         self.children[0].Evaluate(table)
-        while self.children[1].Evaluate(table)[0]:
-            self.children[2].Evaluate(table)
-            self.children[3].Evaluate(table)
+        Node.add_line(f"LOOP_{unique_id}:")
+        self.children[1].Evaluate(table)[0]
+        Node.add_line("CMP EAX, False")
+        Node.add_line(f"JE EXIT_{unique_id}")
+        self.children[2].Evaluate(table)
+        self.children[3].Evaluate(table)
+        Node.add_line(f"JMP LOOP_{unique_id}")
+        Node.add_line(f"EXIT_{unique_id}:")
