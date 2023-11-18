@@ -137,7 +137,7 @@ class IFNode(Node):
 class FORNode(Node):
     def Evaluate(self, table: SymbolTable, funcTable: SymbolTable):
         self.children[0].Evaluate(table,funcTable)
-        while self.children[1].Evaluate(table,funcTable)[0]:
+        while self.children[1].Evaluate(table,funcTable)[0]:            
             self.children[2].Evaluate(table,funcTable)
             self.children[3].Evaluate(table,funcTable)
             

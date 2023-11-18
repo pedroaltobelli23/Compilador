@@ -268,8 +268,10 @@ class Parser:
                     node = self.parseStatement()
                     childrens.append(node)
                 self.tokens.selectNext()
-                if self.tokens.next.type not in [END,EOF]:
+                if self.tokens.next.type not in [END,EOF,ELSE]:
                     raise Exception("Need space")
+            else:
+                raise Exception("Code Incorrect")
         master = Block("Block", childrens)
         return master
 
@@ -371,7 +373,7 @@ class Parser:
                 variable = Assigment(EQUAL, [variable, self.parseBoolExpression()])
             elif self.tokens.next.type == PAR_IN:
                 self.tokens.selectNext()
-                nodes = []
+                nodes = []                
                 if self.tokens.next.type == COMMA:
                     raise Exception("Code Incorrect")
                 
@@ -380,6 +382,7 @@ class Parser:
                     if self.tokens.next.type == COMMA:
                         self.tokens.selectNext()
                         nodes.append(self.parseBoolExpression())
+                self.tokens.selectNext()        
                 variable = FuncCall(identifier_name,nodes)
             else:
                 raise Exception("Not supported operation")
