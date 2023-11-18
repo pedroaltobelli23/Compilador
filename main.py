@@ -16,6 +16,9 @@ from abstractsyntaxtree import (
     FORNode,
     VarDec,
     StrVal,
+    FuncCall,
+    FuncDec,
+    ReturnNode,
 )
 
 PLUS = "+"
@@ -32,6 +35,8 @@ PAR_OUT = ")"
 BRA_IN = "{"
 BRA_OUT = "}"
 SEMICOLUMN = ";"
+COMMA = ","
+RETURN = "return"
 IDENTIFIER = "IDENTIFIER"
 EQUAL = "="
 NOT = "!"
@@ -46,6 +51,7 @@ LT = "<"
 IF = "if"
 ELSE = "else"
 FOR = "for"
+FUNC = "func"
 END = "\n"
 EOF = "End of File"
 
@@ -64,9 +70,9 @@ class PrePro:
 
         if re.search(r"\d\s+\d", code):
             raise Exception("Two numbers can't be separeted only by a space")
-        
+
         code = "\n".join([line.lstrip("\t") for line in lines])
-        
+
         return code
 
 
@@ -102,15 +108,15 @@ class Tokenizer:
                         return
                 self.next = Token(type=INT, value=int(val))
                 return
-            elif self.source[self.position] == '"': # checking if is string
+            elif self.source[self.position] == '"':  # checking if is string
                 string_value = ""
-                self.position+=1
-                while (self.position < len(self.source)):
+                self.position += 1
+                while self.position < len(self.source):
                     if self.source[self.position] != '"':
-                        string_value+=self.source[self.position]
-                        self.position+=1
+                        string_value += self.source[self.position]
+                        self.position += 1
                     else:
-                        self.position+=1
+                        self.position += 1
                         self.next = Token(type=STR, value=str(string_value))
                         return
                 raise Exception("String Incorrect")
@@ -154,6 +160,10 @@ class Tokenizer:
                 self.next = Token(type=SEMICOLUMN, value=self.source[self.position])
                 self.position += 1
                 return
+            elif self.source[self.position] == ",":  # Checking if is comma
+                self.next = Token(type=COMMA, value=self.source[self.position])
+                self.position += 1
+                return
             elif re.match(
                 "[a-zA-Z]", self.source[self.position]
             ):  # Checking if is IDENTIFIER
@@ -173,6 +183,10 @@ class Tokenizer:
                     self.next = Token(type=ELSE, value=str(val))
                 elif val == FOR:
                     self.next = Token(type=FOR, value=str(val))
+                elif val == RETURN:
+                    self.next = Token(type=RETURN, value=str(val))
+                elif val == FUNC:
+                    self.next = Token(type=FUNC, value=str(val))
                 elif val == VAR:
                     self.next = Token(type=VAR, value=str(val))
                 elif val == T_INT:
@@ -181,7 +195,6 @@ class Tokenizer:
                     self.next = Token(type=T_STRING, value=str(val))
                 else:
                     self.next = Token(type=IDENTIFIER, value=str(val))
-                
                 return
             elif self.source[self.position] == ">":  # Checking if is >
                 self.next = Token(type=GT, value=self.source[self.position])
@@ -209,7 +222,7 @@ class Tokenizer:
                     raise Exception("| is not valid, try ||")
             elif self.source[self.position] == "=":  # Checking if is =
                 self.position += 1
-                if self.source[self.position] == "=": # Checking if is ==
+                if self.source[self.position] == "=":  # Checking if is ==
                     self.next = Token(type=COMPARE, value=self.source[self.position])
                     self.position += 1
                 else:
@@ -240,7 +253,9 @@ class Parser:
     def parseProgram(self):
         childrens = []
         while self.tokens.next.type != EOF:
-            childrens.append(self.parseStatement())
+            childrens.append(self.parseDeclaration())
+            while self.tokens.next.type == '\n':
+                self.tokens.selectNext()
         return childrens
 
     def parseBlock(self):
@@ -253,6 +268,8 @@ class Parser:
                     node = self.parseStatement()
                     childrens.append(node)
                 self.tokens.selectNext()
+                if self.tokens.next.type not in [END,EOF]:
+                    raise Exception("Need space")
         master = Block("Block", childrens)
         return master
 
@@ -300,15 +317,70 @@ class Parser:
             raise Exception("Code Incorrect")
 
         return node
+    
+    def parseDeclaration(self):
+        argumentos = []
+        if self.tokens.next.type == FUNC:
+            self.tokens.selectNext()
+            if self.tokens.next.type == IDENTIFIER:
+                nome_funcao = self.tokens.next.value
+                self.tokens.selectNext()
+                if self.tokens.next.type == PAR_IN:
+                    self.tokens.selectNext()
+                    if self.tokens.next.type == COMMA:
+                        raise Exception("Unsuported comma in this position")
+                    
+                    while self.tokens.next.type != PAR_OUT:
+                        if self.tokens.next.type == IDENTIFIER:
+                            nome_argumento = self.tokens.next.value
+                            self.tokens.selectNext()
+                            if self.tokens.next.type in [T_INT,T_STRING]:
+                                #Fazer varDec e guardar em argumentos
+                                tipo_argumento = self.tokens.next.type
+                                arg = VarDec(tipo_argumento, [nome_argumento])
+                                argumentos.append(arg)
+                                self.tokens.selectNext()
+                            else:
+                                raise Exception("Declaration is Incorrect")
+                        elif self.tokens.next.type == COMMA:
+                            self.tokens.selectNext()
+                            if self.tokens.next.type == PAR_OUT:
+                                raise Exception("Unsuported parenthesis in this position")
+                        else:
+                            raise Exception("Code is Incorrect")
+                    
+                    self.tokens.selectNext()
+                    if self.tokens.next.type in [T_INT,T_STRING]:
+                        tipo_func = self.tokens.next.type
+                        func_dec = VarDec(tipo_func, [nome_funcao])
+                        argumentos.insert(0,func_dec)
+                        self.tokens.selectNext()
+                        argumentos.append(self.parseBlock())
+                        variable = FuncDec((nome_funcao,tipo_func),argumentos)
+                    else:
+                        raise Exception("Function Declaration is Incorrect")
+        return variable
 
     def parseStatement(self):
-        # print(self.tokens.next.type)
         if self.tokens.next.type == IDENTIFIER:
-            variable = Identifier(self.tokens.next.value, [])
+            identifier_name = self.tokens.next.value
+            variable = Identifier(identifier_name, [])
             self.tokens.selectNext()
             if self.tokens.next.type == EQUAL:
                 self.tokens.selectNext()
                 variable = Assigment(EQUAL, [variable, self.parseBoolExpression()])
+            elif self.tokens.next.type == PAR_IN:
+                self.tokens.selectNext()
+                nodes = []
+                if self.tokens.next.type == COMMA:
+                    raise Exception("Code Incorrect")
+                
+                while self.tokens.next.type != PAR_OUT:
+                    nodes.append(self.parseBoolExpression())
+                    if self.tokens.next.type == COMMA:
+                        self.tokens.selectNext()
+                        nodes.append(self.parseBoolExpression())
+                variable = FuncCall(identifier_name,nodes)
             else:
                 raise Exception("Not supported operation")
         elif self.tokens.next.type == PRINT:
@@ -323,21 +395,22 @@ class Parser:
                     else:
                         raise Exception("Code Incorrect")
                 else:
-                    # print(self.tokens.next.type)
                     raise Exception("Code is Incorrect")
         elif self.tokens.next.type == VAR:
             self.tokens.selectNext()
             if self.tokens.next.type == IDENTIFIER:
                 name = self.tokens.next.value
                 self.tokens.selectNext()
-                if self.tokens.next.type in [T_INT,T_STRING]:
+                if self.tokens.next.type in [T_INT, T_STRING]:
                     variable_type = self.tokens.next.type
                     self.tokens.selectNext()
                     if self.tokens.next.type == EQUAL:
                         self.tokens.selectNext()
-                        variable = VarDec(variable_type,[name,self.parseBoolExpression()])
+                        variable = VarDec(
+                            variable_type, [name, self.parseBoolExpression()]
+                        )
                     elif self.tokens.next.type == EOF or self.tokens.next.type == END:
-                        variable = VarDec(variable_type,[name])
+                        variable = VarDec(variable_type, [name])
                         self.tokens.selectNext()
                     else:
                         raise Exception("Code is Incorrect")
@@ -364,10 +437,12 @@ class Parser:
                 self.tokens.selectNext()
                 if self.tokens.next.type == EQUAL:
                     self.tokens.selectNext()
-                    a = Assigment(EQUAL, [variable, self.parseBoolExpression()]) # for init
+                    a = Assigment(
+                        EQUAL, [variable, self.parseBoolExpression()]
+                    )  # for init
                     if self.tokens.next.type == SEMICOLUMN:
                         self.tokens.selectNext()
-                        b = self.parseBoolExpression() # for condition
+                        b = self.parseBoolExpression()  # for condition
                         if self.tokens.next.type == SEMICOLUMN:
                             self.tokens.selectNext()
                             if self.tokens.next.type == IDENTIFIER:
@@ -375,35 +450,52 @@ class Parser:
                                 self.tokens.selectNext()
                                 if self.tokens.next.type == EQUAL:
                                     self.tokens.selectNext()
-                                    c = Assigment(EQUAL, [variable, self.parseBoolExpression()]) # for increment
+                                    c = Assigment(
+                                        EQUAL, [variable, self.parseBoolExpression()]
+                                    )  # for increment
                                     block = self.parseBlock()
-                                    variable = FORNode(IF,[a,b,block,c])
-                                    if self.tokens.next.type == END or self.tokens.next.type == EOF:
+                                    variable = FORNode(IF, [a, b, block, c])
+                                    if (
+                                        self.tokens.next.type == END
+                                        or self.tokens.next.type == EOF
+                                    ):
                                         self.tokens.selectNext()
                                     else:
                                         raise Exception("Code Incorrect")
                                 else:
                                     raise Exception("Not supported operation")
                             else:
-                                raise Exception("for assignment ; condition; expression {block}")
+                                raise Exception(
+                                    "for assignment ; condition; expression {block}"
+                                )
                         else:
-                            raise Exception("for assignment ; condition; expression {block}")
+                            raise Exception(
+                                "for assignment ; condition; expression {block}"
+                            )
                     else:
-                        raise Exception("for assignment ; condition; expression {block}")  
+                        raise Exception(
+                            "for assignment ; condition; expression {block}"
+                        )
                 else:
                     raise Exception("for assignment ; condition; expression {block}")
+        elif self.tokens.next.type == RETURN:
+            self.tokens.selectNext()
+            variable = ReturnNode(RETURN,[self.parseBoolExpression()])
         elif self.tokens.next.type == END:
             self.tokens.selectNext()
             variable = NoOp("NoOp", [])
         else:
-            # print(self.tokens.next.type)
             raise Exception("Code Incorrect")
-        
+
         return variable
 
     def parseExpression(self):
         node = self.parseTerm()
-        while self.tokens.next.type == PLUS or self.tokens.next.type == MINUS or self.tokens.next.type==CONCAT:
+        while (
+            self.tokens.next.type == PLUS
+            or self.tokens.next.type == MINUS
+            or self.tokens.next.type == CONCAT
+        ):
             if self.tokens.next.type == PLUS:
                 self.tokens.selectNext()
                 node = BinOp(PLUS, [node, self.parseTerm()])
@@ -440,12 +532,28 @@ class Parser:
             self.tokens.selectNext()
             if self.tokens.next.type == INT:
                 raise Exception("Code Incorrect")
-        elif self.tokens.next.type == STR: # String
+        elif self.tokens.next.type == STR:  # String
             node = StrVal(self.tokens.next.value, [])
             self.tokens.selectNext()
         elif self.tokens.next.type == IDENTIFIER:  # Identifier
-            node = Identifier(self.tokens.next.value, [])
+            identifier_name = self.tokens.next.value
             self.tokens.selectNext()
+            if self.tokens.next.type == PAR_IN: # FuncCall
+                self.tokens.selectNext()
+                nodes = []
+                if self.tokens.next.type == COMMA:
+                    raise Exception("Code Incorrect")
+                
+                while self.tokens.next.type != PAR_OUT:
+                    nodes.append(self.parseBoolExpression())
+                    if self.tokens.next.type == COMMA:
+                        self.tokens.selectNext()
+                        nodes.append(self.parseBoolExpression())
+                
+                self.tokens.selectNext()
+                node = FuncCall(identifier_name,nodes)
+            else:
+                node = Identifier(identifier_name, [])
         elif self.tokens.next.type == PLUS:  # Plus signal
             self.tokens.selectNext()
             node = UnOp(PLUS, [self.parseFactor()])
@@ -466,13 +574,11 @@ class Parser:
             self.tokens.selectNext()
             if self.tokens.next.type == PAR_IN:
                 self.tokens.selectNext()
-                node = Scanln(SCAN,[])
+                node = Scanln(SCAN, [])
                 if self.tokens.next.type != PAR_OUT:
                     raise Exception("Code Incorrect")
                 self.tokens.selectNext()
         else:
-            print(self.tokens.next.type)
-            print(self.tokens.next.value)
             raise Exception("Code Incorrect")
 
         return node
@@ -480,22 +586,23 @@ class Parser:
     def run(self, code):
         filtered = PrePro(code).filter()
         identifier_table = SymbolTable()
+        function_table = SymbolTable()
         self.tokens = Tokenizer(filtered)
         self.tokens.selectNext()
         list_of_nodes = self.parseProgram()
-        # print("Resposta: ")
         if self.tokens.next.type == EOF:
             for node in list_of_nodes:
-                node.Evaluate(identifier_table)
-            # print("Table")
-            # print(identifier_table.table)
+                node.Evaluate(identifier_table,function_table)
+                
+            main_node = FuncCall('main',[])
+            main_node.Evaluate(identifier_table,function_table)
         else:
             raise Exception("Code Incorrect")
 
 
 if __name__ == "__main__":
     chain = sys.argv[1]
-    
+
     parser = Parser()
-    
+
     final = parser.run(chain)
