@@ -1,36 +1,10 @@
-class SymbolTable:
-    def __init__(self):
-        self.table = dict()
-        self.id = 1
-
-    def getter(self, identifier):
-        try:
-            return self.table[identifier]
-        except:
-            raise Exception(f"{identifier} variable dont exist")
-        
-    def create(self, identifier, type):
-        if identifier in self.table.keys():
-            raise Exception("variable already exists")
-        else:
-            self.table[identifier] = (None,type,self.id)
-            self.id+=1
-
-    def setter(self, identifier, value):
-        if identifier not in self.table.keys():
-            raise Exception("variable not declared")
-        else:
-            # print(self.table[identifier])
-            if (self.table[identifier][1] == value[1]):
-                self.table[identifier] = (value[0],value[1],self.table[identifier][2])
-                # print(self.table[identifier])
-            else:
-                raise Exception("Type Mismatch")
+import os
+from compiler.symboltable import SymbolTable
 
 class Node:
     i = 0
-    assembly = open("asmheader.asm",mode="r").read()
-    end_code = open("asmendcode.asm",mode="r").read()
+    assembly = open(os.getcwd()+"/compiler/asmfiles/asmheader.asm",mode="r").read()
+    end_code = open(os.getcwd()+"/compiler/asmfiles/asmendcode.asm",mode="r").read()
 
     def __init__(self, value, children):
         self.value = value
