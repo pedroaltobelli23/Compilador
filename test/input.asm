@@ -59,7 +59,7 @@ PUSH DWORD 0
 MOV EAX, 5
 MOV [EBP-4], EAX
 PUSH DWORD 0
-MOV EAX, 1
+MOV EAX, 2
 MOV [EBP-8], EAX
 LOOP_20:
 MOV EAX, [EBP-4]
@@ -83,6 +83,30 @@ ADD EAX, EBX
 MOV [EBP-8], EAX
 JMP LOOP_20
 EXIT_20:
+PUSH DWORD 0
+PUSH scanint
+PUSH formatin
+call scanf
+ADD ESP, 8
+MOV EAX, DWORD [scanint]
+MOV [EBP-12], EAX
+IF_33:
+MOV EAX, 1
+PUSH EAX
+MOV EAX, [EBP-12]
+POP EBX
+CMP EAX, EBX
+CALL binop_je
+CMP EAX, False
+JE ELSE_33
+MOV EAX, [EBP-12]
+PUSH EAX
+PUSH formatout
+CALL printf
+ADD ESP, 8
+JMP ENDIF_33
+ELSE_33:
+ENDIF_33:
 
 ; interrupcao de saida (default)
 
