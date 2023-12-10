@@ -83,6 +83,7 @@ class UnOp(Node):
             if self.value == "+":
                 return (1 * var[0] , var[1])
             elif self.value == "-":
+                Node.add_line("NEG EAX")
                 return (-1 * var[0],var[1])
             elif self.value == "!":
                 return (not (var[0]), var[1])

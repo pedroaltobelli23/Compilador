@@ -32,7 +32,3 @@ build/
 
 # Windows-specific
 Thumbs.db
-
-# Test
-input.go
-git_commands.txt
