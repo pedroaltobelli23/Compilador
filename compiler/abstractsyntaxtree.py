@@ -47,10 +47,11 @@ class BinOp(Node):
                 Node.add_line("SUB EAX, EBX")
                 return (var1[0] - var2[0],"int")
             if self.value == "*":
-                Node.add_line("IMUL EAX, EBX")
+                Node.add_line("MUL EBX")
                 return (var1[0] * var2[0],"int")
             elif self.value == "/":
-                Node.add_line("IDIV EAX, EBX")
+                Node.add_line("XOR EDX, EDX")
+                Node.add_line("DIV EBX")
                 return (var1[0] // var2[0],"int")
             elif self.value == "||":
                 Node.add_line("OR EAX, EBX")

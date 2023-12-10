@@ -56,57 +56,24 @@ MOV EBP, ESP ; estabelece um novo base pointer
 
 
 PUSH DWORD 0
-MOV EAX, 5
+MOV EAX, 45
 MOV [EBP-4], EAX
 PUSH DWORD 0
-MOV EAX, 2
+MOV EAX, 6
 MOV [EBP-8], EAX
-LOOP_20:
-MOV EAX, [EBP-4]
-PUSH EAX
-MOV EAX, [EBP-8]
-POP EBX
-CMP EAX, EBX
-CALL binop_jl
-CMP EAX, False
-JE EXIT_20
-MOV EAX, [EBP-8]
-PUSH EAX
-PUSH formatout
-CALL printf
-ADD ESP, 8
-MOV EAX, 1
-PUSH EAX
-MOV EAX, [EBP-8]
-POP EBX
-ADD EAX, EBX
-MOV [EBP-8], EAX
-JMP LOOP_20
-EXIT_20:
 PUSH DWORD 0
-PUSH scanint
-PUSH formatin
-call scanf
-ADD ESP, 8
-MOV EAX, DWORD [scanint]
-MOV [EBP-12], EAX
-IF_33:
-MOV EAX, 1
+MOV EAX, 45
 PUSH EAX
-MOV EAX, [EBP-12]
+MOV EAX, 3
 POP EBX
-CMP EAX, EBX
-CALL binop_je
-CMP EAX, False
-JE ELSE_33
+XOR EDX, EDX
+DIV EBX
+MOV [EBP-12], EAX
 MOV EAX, [EBP-12]
 PUSH EAX
 PUSH formatout
 CALL printf
 ADD ESP, 8
-JMP ENDIF_33
-ELSE_33:
-ENDIF_33:
 
 ; interrupcao de saida (default)
 
